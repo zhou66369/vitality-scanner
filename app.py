@@ -2,7 +2,6 @@ import av
 import cv2
 import numpy as np
 import mediapipe as mp
-import mediapipe.python.solutions.face_mesh as mp_face_mesh
 import time
 import math
 import os
@@ -23,8 +22,7 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# --- 字体加载 (适配 Linux 服务器) ---
-# 请技术人员务必在服务器根目录放入中文字体文件并重命名为 'font.ttf'
+# --- 字体加载 ---
 FONT_PATH = "font.ttf" 
 
 # --- 核心参数 ---
@@ -33,7 +31,7 @@ EYE_SENSITIVITY = 6.5
 
 class YuRuiYuanProcessor:
     def __init__(self):
-        self.mp_face_mesh = mp_face_mesh
+        self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
@@ -181,7 +179,7 @@ class YuRuiYuanProcessor:
         # 状态条
         card = self.put_text_cn(card, f"{level_cn} | {level_en}", (360, 430), col, 30, align="center")
 
-        # 3. 雷达图 (V3.4 优化版坐标)
+        # 3. 雷达图
         card = self.draw_radar_chart(card, (360, 760), 175, metrics, color=col, label_scale=1.1)
         
         # 4. 底部隐私声明
@@ -288,5 +286,4 @@ def main():
         st.image(card_rgb, caption="YuRuiYuan AI-LABS Report", use_column_width=True)
 
 if __name__ == "__main__":
-
     main()
