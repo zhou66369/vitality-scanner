@@ -1,9 +1,8 @@
 streamlit
 streamlit-webrtc
 opencv-python-headless
-mediapipe==0.10.14
+mediapipe==0.9.3.0
 protobuf==3.20.3
-setuptools
 numpy
 Pillow
 av
