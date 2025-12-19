@@ -192,7 +192,7 @@ class YuRuiYuanProcessor:
         card = self.put_text_cn(card, "扫码内测", (650, 1230), (255, 255, 255), 12, align="center")
         return card
 
-    # === WebRTC 每一帧的回调处理 ===
+    # === WebRTC 回调 ===
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         image = frame.to_ndarray(format="bgr24")
         image = cv2.flip(image, 1)
@@ -228,7 +228,6 @@ class YuRuiYuanProcessor:
 
             if remaining <= 0:
                 self.state = "COMPLETED"
-                # 计算结果
                 final_m = {}
                 for k in self.buffer:
                     if self.buffer[k]:
@@ -242,47 +241,46 @@ class YuRuiYuanProcessor:
                 if raw > 90: raw = 90 + (raw-90)*0.5
                 if raw < 35: raw = 35
                 
-                # 生成卡片并存入 session_state
                 self.result_card = self.generate_result_card(int(raw), final_m)
-                st.session_state["final_card"] = self.result_card
                 self.scan_completed = True
 
         return av.VideoFrame.from_ndarray(image, format="bgr24")
 
-# --- Streamlit 前端 ---
+# --- Streamlit 前端 (修正版) ---
 def main():
-    if "processor" not in st.session_state:
-        st.session_state["processor"] = YuRuiYuanProcessor()
-
     st.title("YuRuiYuan AI Bio-Scan")
     st.caption("请授权摄像头权限 · 建议使用微信或 Safari 打开")
 
+    # 关键修改：直接传入类名，不要用 lambda，也不要手动初始化
     ctx = webrtc_streamer(
         key="vitality-scanner",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": {"facingMode": "user"}, "audio": False},
-        video_processor_factory=lambda: st.session_state["processor"],
+        video_processor_factory=YuRuiYuanProcessor,  # 这里改了！直接传类名
         async_processing=True,
     )
 
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🚀 开始检测 / START"):
-            if st.session_state["processor"]:
-                st.session_state["processor"].state = "SCANNING"
-                st.session_state["processor"].start_time = time.time()
-                st.session_state["processor"].buffer = {k:[] for k in ['focus', 'plump', 'conf', 'stress', 'joy', 'char']}
+            # 这里的写法也变了，通过 ctx 获取处理器
+            if ctx.video_processor:
+                ctx.video_processor.state = "SCANNING"
+                ctx.video_processor.start_time = time.time()
+                ctx.video_processor.buffer = {k:[] for k in ['focus', 'plump', 'conf', 'stress', 'joy', 'char']}
     
     with col2:
         if st.button("🔄 重置 / RESET"):
-            if st.session_state["processor"]:
-                st.session_state["processor"].state = "IDLE"
-                st.session_state["processor"].scan_completed = False
+            if ctx.video_processor:
+                ctx.video_processor.state = "IDLE"
+                ctx.video_processor.scan_completed = False
 
-    if "final_card" in st.session_state and st.session_state["processor"].scan_completed:
+    # 结果展示逻辑也变了
+    if ctx.video_processor and ctx.video_processor.scan_completed and ctx.video_processor.result_card is not None:
         st.success("检测完成！请长按下方图片保存")
-        card_rgb = cv2.cvtColor(st.session_state["final_card"], cv2.COLOR_BGR2RGB)
+        # 显示图片
+        card_rgb = cv2.cvtColor(ctx.video_processor.result_card, cv2.COLOR_BGR2RGB)
         st.image(card_rgb, caption="YuRuiYuan AI-LABS Report", use_column_width=True)
 
 if __name__ == "__main__":
