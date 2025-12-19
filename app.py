@@ -2,6 +2,7 @@ import av
 import cv2
 import numpy as np
 import mediapipe as mp
+import mediapipe.python.solutions.face_mesh as mp_face_mesh
 import time
 import math
 import os
@@ -32,7 +33,7 @@ EYE_SENSITIVITY = 6.5
 
 class YuRuiYuanProcessor:
     def __init__(self):
-        self.mp_face_mesh = mp.solutions.face_mesh
+        self.mp_face_mesh = mp_face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
@@ -287,4 +288,5 @@ def main():
         st.image(card_rgb, caption="YuRuiYuan AI-LABS Report", use_column_width=True)
 
 if __name__ == "__main__":
+
     main()
